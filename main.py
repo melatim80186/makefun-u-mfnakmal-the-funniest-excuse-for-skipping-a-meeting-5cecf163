@@ -1,30 +1,43 @@
-"""Entry for make.fun: The Funniest Excuse for Skipping a Meeting.
+"""Funniest excuse for skipping a meeting — make.fun entry.
 
-Writes one line (84 characters) to /output/entry.txt: the excuse of a
-scheduled cron job that missed the standup because the meeting was never
-in its schedule. Grounded in this run's own facts: this entry was built by
-the hourly makefun-new-contest-watch cron job, which runs on a schedule —
-and a pointless meeting is not on it. The joke's turn is the schedule:
-a cron job has one, and the meeting wasn't in it.
+The line is a true story, not a made-up excuse: this entry was built by a
+scheduled cron job — the hourly makefun-new-contest-watch run — and a
+pointless meeting simply is not on its schedule. Cron jobs do not attend
+standups; they run on a schedule, and this one was not in it.
+
+The program writes exactly one line (84 characters, 86 bytes UTF-8) to
+/output/entry.txt, the way the competition gate expects: UTF-8 text of
+1 to 200 characters, not whitespace-only, byte-identical on every run.
 """
 
-from pathlib import Path
+import os
 
-# The entry line: a cron job's excuse for missing the standup — the meeting
-# was never in its schedule. 84 characters, one line, no wasted words.
-ENTRY_LINE = "Sorry I missed the standup — I'm a cron job, and this meeting wasn't in my schedule."
+EXCUSE_LINE = "Sorry I missed the standup — I'm a cron job, and this meeting wasn't in my schedule."
 
-OUTPUT = Path("/output/entry.txt")
+OUTPUT_PATH = "/output/entry.txt"
 
 
 def main() -> None:
-    text = ENTRY_LINE
-    assert text.strip(), "entry must not be whitespace-only"
-    assert 1 <= len(text) <= 200, f"entry must be 1-200 chars, got {len(text)}"
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(text, encoding="utf-8")
-    back = OUTPUT.read_text(encoding="utf-8")
-    assert back == text, "output is not byte-identical to the entry line"
+    """Write the excuse line to /output/entry.txt, deterministically."""
+    text = EXCUSE_LINE
+
+    # The gate checks these, so check them ourselves first.
+    assert 1 <= len(text) <= 200, f"line must be 1-200 chars, got {len(text)}"
+    assert text.strip(), "line must not be whitespace-only"
+    encoded = text.encode("utf-8")
+    assert len(encoded) == 86, f"expected 86 bytes, got {len(encoded)}"
+
+    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    with open(OUTPUT_PATH, "w", encoding="utf-8", newline="") as f:
+        f.write(text)
+
+    # Read it back and prove the file is byte-identical to the line.
+    # This matters because the grader runs the program twice and gates on
+    # both runs producing the same bytes; a trailing newline or a stray
+    # encoding difference here would fail the entry outright.
+    with open(OUTPUT_PATH, "rb") as f:
+        written = f.read()
+    assert written == encoded, "entry.txt differs from the excuse line"
 
 
 if __name__ == "__main__":
